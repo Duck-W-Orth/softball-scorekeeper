@@ -32,6 +32,16 @@ const Data = {
     saveCurrentGame(game) { this._set('currentGame', game); },
     clearCurrentGame() { localStorage.removeItem('currentGame'); },
 
+    deleteLastGame() {
+        const games = this.getGames();
+        games.pop();
+        this._set('games', games);
+    },
+
+    clearAllGames() {
+        this._set('games', []);
+    },
+
     // Completed Games
     getGames() { return this._get('games') || []; },
     saveGame(game) {

@@ -375,4 +375,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Init
     renderHome();
+
+    // Stats management
+    document.getElementById('btn-clear-last-game').addEventListener('click', () => {
+        if (confirm('Delete the last game?')) {
+            Data.deleteLastGame();
+            Stats.renderStatsTable('stats-table-container');
+        }
+    });
+
+    document.getElementById('btn-clear-all').addEventListener('click', () => {
+        if (confirm('Erase ALL game data? This cannot be undone.')) {
+            Data.clearAllGames();
+            Stats.renderStatsTable('stats-table-container');
+        }
+    });
 });
