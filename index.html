@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Softball Scorekeeper</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Navigation -->
+        <nav id="nav">
+            <button class="nav-btn active" data-view="home">Home</button>
+            <button class="nav-btn" data-view="roster">Roster</button>
+            <button class="nav-btn" data-view="game">Game</button>
+            <button class="nav-btn" data-view="stats">Stats</button>
+        </nav>
+
+        <!-- Home View -->
+        <div id="view-home" class="view active">
+            <h1>⚾ Softball Scorekeeper</h1>
+            <div class="home-actions">
+                <button id="btn-new-game" class="btn-primary btn-large">New Game</button>
+                <button id="btn-resume-game" class="btn-secondary btn-large" style="display:none;">Resume Game</button>
+            </div>
+            <div id="season-summary"></div>
+        </div>
+
+        <!-- Roster View -->
+        <div id="view-roster" class="view">
+            <h2>Master Roster</h2>
+            <div class="roster-controls">
+                <input type="text" id="new-player-name" placeholder="Player name" maxlength="30">
+                <input type="text" id="new-player-number" placeholder="#" maxlength="3" class="small-input">
+                <button id="btn-add-player" class="btn-primary">Add</button>
+            </div>
+            <div id="roster-list"></div>
+            <p class="roster-count"><span id="roster-count">0</span>/30 players</p>
+        </div>
+
+        <!-- Game View -->
+        <div id="view-game" class="view">
+            <!-- Lineup Setup (pre-game) -->
+            <div id="lineup-setup" style="display:none;">
+                <h2>Set Lineup</h2>
+                <p class="hint">Tap players to add to batting order</p>
+                <div id="available-players"></div>
+                <h3>Batting Order</h3>
+                <div id="lineup-order"></div>
+                <button id="btn-start-game" class="btn-primary btn-large" disabled>Start Game</button>
+            </div>
+
+            <!-- Live Game -->
+            <div id="live-game" style="display:none;">
+                <div id="game-header">
+                    <div class="scoreboard">
+                        <span id="team-score">Us: 0</span>
+                        <span id="opp-score">Them: 0</span>
+                    </div>
+                    <div class="game-info">
+                        <span id="inning-display">Inn: 1</span>
+                        <span id="outs-display">Outs: 0</span>
+                    </div>
+                </div>
+
+                <!-- Half-inning toggle -->
+                <div id="half-inning-toggle">
+                    <button class="toggle-btn active" data-half="top">🏏 Batting</button>
+                    <button class="toggle-btn" data-half="bottom">🧤 Field</button>
+                </div>
+
+                <!-- Batting Panel -->
+                <div id="batting-panel">
+                    <div id="bases-display">
+                        <div class="diamond">
+                            <div class="base second" id="base-2"></div>
+                            <div class="base third" id="base-3"></div>
+                            <div class="base first" id="base-1"></div>
+                            <div class="base home" id="base-home"></div>
+                        </div>
+                    </div>
+                    <div id="current-batter"></div>
+                    <div id="at-bat-actions"></div>
+                    <!-- Runner resolution modal -->
+                    <div id="runner-modal" class="modal" style="display:none;">
+                        <div class="modal-content">
+                            <h3>Resolve Runners</h3>
+                            <div id="runner-decisions"></div>
+                            <button id="btn-confirm-runners" class="btn-primary">Confirm</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fielding Panel -->
+                <div id="fielding-panel" style="display:none;">
+                    <h3>Opponent Half-Inning</h3>
+                    <div class="field-counters">
+                        <div class="counter-group">
+                            <label>Runs</label>
+                            <button class="counter-btn minus" data-stat="opp-runs">−</button>
+                            <span id="opp-runs-count">0</span>
+                            <button class="counter-btn plus" data-stat="opp-runs">+</button>
+                        </div>
+                        <div class="counter-group">
+                            <label>Walks</label>
+                            <button class="counter-btn minus" data-stat="opp-walks">−</button>
+                            <span id="opp-walks-count">0</span>
+                            <button class="counter-btn plus" data-stat="opp-walks">+</button>
+                        </div>
+                        <div class="counter-group">
+                            <label>K's</label>
+                            <button class="counter-btn minus" data-stat="opp-ks">−</button>
+                            <span id="opp-ks-count">0</span>
+                            <button class="counter-btn plus" data-stat="opp-ks">+</button>
+                        </div>
+                    </div>
+                    <button id="btn-end-opp-inning" class="btn-primary btn-large">End Opponent Half</button>
+                </div>
+
+                <!-- Game Controls -->
+                <div id="game-controls">
+                    <button id="btn-undo" class="btn-secondary">Undo</button>
+                    <button id="btn-end-game" class="btn-danger">End Game</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats View -->
+        <div id="view-stats" class="view">
+            <h2>Season Stats</h2>
+            <div id="stats-table-container"></div>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/stats.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js');
+        }
+    </script>
+</body>
+</html>
