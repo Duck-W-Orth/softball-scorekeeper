@@ -250,6 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
             { label: '3B', outcome: '3B', cls: 'hit' },
             { label: 'HR', outcome: 'HR', cls: 'hit' },
             { label: 'BB', outcome: 'BB', cls: 'walk' },
+            { label: 'Error', outcome: 'ERR', cls: 'walk' },
             { label: 'FC', outcome: 'FC', cls: 'out' },
             { label: 'K', outcome: 'K', cls: 'out' },
             { label: 'Foul Out', outcome: 'FO', cls: 'out' },
@@ -271,6 +272,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleAtBat(outcome) {
         if (Game.state.gameOver) return;
+
+        // Error has its own multi-step flow
+        if (outcome === 'ERR') {
+            showErrorModal();
+            return;
+        }
 
         // These outcomes always record an out for the batter
         const batterIsOut = ['K', 'FO', 'GO', 'FLY', 'LO', 'SF'].includes(outcome);
@@ -296,21 +303,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const decisions = document.getElementById('runner-decisions');
         const defaults = Game.getDefaultRunnerAdvance(outcome);
 
-        // For DP, also include the batter as a decision (they could be out too)
-        let dpBatterEntry = null;
-        if (outcome === 'DP') {
-            const batter = Game.currentBatter();
-            dpBatterEntry = { playerId: batter.id, isBatter: true, name: batter.name, number: batter.number };
+        // Outcomes where we show the batter in the modal
+        const showBatterInModal = ['1B', '2B', '3B', 'DP', 'ERR'].includes(outcome);
+
+        const batter = Game.currentBatter();
+        let batterEntry = null;
+        if (showBatterInModal) {
+            batterEntry = { playerId: batter.id, name: batter.name, number: batter.number };
         }
 
-        if (defaults.length === 0 && !dpBatterEntry) {
+        if (defaults.length === 0 && !batterEntry) {
             Game.recordAtBat(outcome, []);
             renderLiveGame();
             return;
         }
 
         const roster = Game.state.lineup;
-
         let html = '';
 
         // Render runner decisions
@@ -318,28 +326,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const player = roster.find(p => p.id === d.playerId) || { name: 'Runner' };
             const baseLabel = d.fromBase === 1 ? '1st' : d.fromBase === 2 ? '2nd' : '3rd';
 
-            let options = '';
-            if (['GO', 'FLY', 'LO', 'SF', 'FC', 'DP'].includes(outcome)) {
+            // All outcomes now get the "Out" option for runners (baserunning errors, thrown out, etc.)
+            let options = `
+                <option value="${d.fromBase}" ${d.defaultTo === d.fromBase ? 'selected' : ''}>Stays at ${baseLabel}</option>
+                ${d.fromBase < 3 ? `<option value="${d.fromBase + 1}" ${d.defaultTo === d.fromBase + 1 ? 'selected' : ''}>Advances to ${d.fromBase + 1 === 2 ? '2nd' : '3rd'}</option>` : ''}
+                <option value="home" ${d.defaultTo === 'home' ? 'selected' : ''}>Scores</option>
+                <option value="out" ${d.defaultTo === 'out' ? 'selected' : ''}>Out</option>
+            `;
+
+            // For walks, simplify (no out option, just force logic)
+            if (outcome === 'BB') {
                 options = `
-                    <option value="${d.fromBase}" ${d.fromBase === d.defaultTo ? 'selected' : ''}>Stays at ${baseLabel}</option>
-                    ${d.fromBase < 3 ? `<option value="${d.fromBase + 1}">Advances to ${d.fromBase + 1 === 2 ? '2nd' : '3rd'}</option>` : ''}
-                    <option value="home" ${d.defaultTo === 'home' ? 'selected' : ''}>Scores</option>
-                    <option value="out" ${d.defaultTo === 'out' ? 'selected' : ''}>Out</option>
+                    <option value="${d.fromBase}" ${d.defaultTo === d.fromBase ? 'selected' : ''}>Stays at ${baseLabel}</option>
+                    <option value="${d.fromBase + 1 <= 3 ? d.fromBase + 1 : 'home'}" ${d.defaultTo === d.fromBase + 1 || (d.fromBase === 3 && d.defaultTo === 'home') ? 'selected' : ''}>Advances to ${d.fromBase + 1 <= 3 ? (d.fromBase + 1 === 2 ? '2nd' : '3rd') : 'Home'}</option>
+                    <option value="home" ${d.defaultTo === 'home' && d.fromBase < 3 ? 'selected' : ''}>Scores</option>
                 `;
-            } else {
-                options = `
-                    <option value="${d.fromBase}">Stays at ${baseLabel}</option>
-                    ${d.fromBase < 3 ? `<option value="${d.fromBase + 1}" ${d.defaultTo === d.fromBase + 1 ? 'selected' : ''}>Advances to ${d.fromBase + 1 === 2 ? '2nd' : '3rd'}</option>` : ''}
-                    <option value="home" ${d.defaultTo === 'home' ? 'selected' : ''}>Scores</option>
-                `;
-                // For walks, force advance is default
-                if (outcome === 'BB') {
-                    options = `
-                        <option value="${d.fromBase}">Stays at ${baseLabel}</option>
-                        <option value="${d.fromBase + 1 <= 3 ? d.fromBase + 1 : 'home'}" ${d.defaultTo === d.fromBase + 1 || (d.fromBase === 3 && d.defaultTo === 'home') ? 'selected' : ''}>Advances to ${d.fromBase + 1 <= 3 ? (d.fromBase + 1 === 2 ? '2nd' : '3rd') : 'Home'}</option>
-                        <option value="home" ${d.defaultTo === 'home' && d.fromBase < 3 ? 'selected' : ''}>Scores</option>
-                    `;
-                }
             }
 
             html += `
@@ -352,14 +353,45 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         });
 
-        // For DP, add batter decision
-        if (dpBatterEntry) {
+        // Add batter to modal for hits, DP, and ERR
+        if (batterEntry) {
+            let batterOptions = '';
+            if (outcome === '1B') {
+                batterOptions = `
+                    <option value="1" selected>Safe at 1st</option>
+                    <option value="2">Safe at 2nd</option>
+                    <option value="out">Out</option>
+                `;
+            } else if (outcome === '2B') {
+                batterOptions = `
+                    <option value="2" selected>Safe at 2nd</option>
+                    <option value="3">Safe at 3rd</option>
+                    <option value="out">Out</option>
+                `;
+            } else if (outcome === '3B') {
+                batterOptions = `
+                    <option value="3" selected>Safe at 3rd</option>
+                    <option value="out">Out</option>
+                `;
+            } else if (outcome === 'DP') {
+                batterOptions = `
+                    <option value="1" selected>Safe at 1st</option>
+                    <option value="out">Out</option>
+                `;
+            } else if (outcome === 'ERR') {
+                batterOptions = `
+                    <option value="1" selected>Safe at 1st</option>
+                    <option value="2">Safe at 2nd</option>
+                    <option value="3">Safe at 3rd</option>
+                    <option value="out">Out</option>
+                `;
+            }
+
             html += `
                 <div class="runner-decision">
-                    <label>${dpBatterEntry.name} (Batter)</label>
-                    <select data-from="0" data-player="${dpBatterEntry.playerId}" data-is-batter="true">
-                        <option value="safe" selected>Safe at 1st</option>
-                        <option value="out">Out</option>
+                    <label>${batterEntry.name} (Batter)</label>
+                    <select data-from="0" data-player="${batterEntry.playerId}" data-is-batter="true">
+                        ${batterOptions}
                     </select>
                 </div>
             `;
@@ -374,17 +406,19 @@ document.addEventListener('DOMContentLoaded', () => {
             selects.forEach(sel => {
                 const isBatter = sel.dataset.isBatter === 'true';
                 if (isBatter) {
-                    // Handle batter for DP
-                    if (sel.value === 'out') {
+                    const val = sel.value;
+                    if (val === 'out') {
                         results.push({ fromBase: 0, playerId: sel.dataset.player, toBase: 'out' });
+                    } else {
+                        const base = parseInt(val);
+                        results.push({ fromBase: 0, playerId: sel.dataset.player, toBase: base });
                     }
-                    // If 'safe', the game engine places batter on 1st
                     return;
                 }
                 const val = sel.value;
                 const toBase = val === 'home' ? 'home' : val === 'out' ? 'out' : parseInt(val);
                 const fromBase = parseInt(sel.dataset.from);
-                // Only add if runner actually moves
+                // Only add if runner actually moves or is out
                 if (toBase !== fromBase) {
                     results.push({ fromBase, playerId: sel.dataset.player, toBase });
                 }

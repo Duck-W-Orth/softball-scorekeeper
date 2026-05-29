@@ -66,7 +66,7 @@ const Game = {
     },
 
     // Record an at-bat result
-    // outcome: '1B','2B','3B','HR','BB','K','FO','GO','FLY','LO','SF','FC','DP'
+    // outcome: '1B','2B','3B','HR','BB','K','FO','GO','FLY','LO','SF','FC','DP','ERR'
     // runnerResults: [{fromBase, toBase}] where toBase can be 'home' or 'out' or 1/2/3
     recordAtBat(outcome, runnerResults) {
         this.pushUndo();
@@ -107,20 +107,47 @@ const Game = {
         }
 
         // Now handle batter
+        // Check if batter was marked out via runnerResults (for stretching on hits, DP, ERR)
+        const batterMarkedOut = runnerResults && runnerResults.some(
+            r => r.fromBase === 0 && r.toBase === 'out'
+        );
+        // Check where batter was placed via runnerResults (for hits where batter advances beyond default)
+        const batterPlacement = runnerResults && runnerResults.find(
+            r => r.fromBase === 0 && r.toBase !== 'out'
+        );
+
         switch (outcome) {
             case '1B':
                 ps.ab++; ps.h++; ps.singles++;
-                this.state.bases[0] = batter.id;
+                if (batterMarkedOut) {
+                    this.state.outs++;
+                } else if (batterPlacement) {
+                    this.state.bases[batterPlacement.toBase - 1] = batter.id;
+                } else {
+                    this.state.bases[0] = batter.id;
+                }
                 rbi = scoredRunners.length;
                 break;
             case '2B':
                 ps.ab++; ps.h++; ps.doubles++;
-                this.state.bases[1] = batter.id;
+                if (batterMarkedOut) {
+                    this.state.outs++;
+                } else if (batterPlacement) {
+                    this.state.bases[batterPlacement.toBase - 1] = batter.id;
+                } else {
+                    this.state.bases[1] = batter.id;
+                }
                 rbi = scoredRunners.length;
                 break;
             case '3B':
                 ps.ab++; ps.h++; ps.triples++;
-                this.state.bases[2] = batter.id;
+                if (batterMarkedOut) {
+                    this.state.outs++;
+                } else if (batterPlacement) {
+                    this.state.bases[batterPlacement.toBase - 1] = batter.id;
+                } else {
+                    this.state.bases[2] = batter.id;
+                }
                 rbi = scoredRunners.length;
                 break;
             case 'HR':
@@ -136,10 +163,11 @@ const Game = {
                 break;
             case 'DP':
                 ps.ab++;
-                // DP does NOT automatically count the batter as out.
-                // The runner modal handles who is out (could be two runners, or runner + batter).
-                // Batter placement depends on runner results — if batter is not out, they reach first.
-                // We'll handle batter placement after this switch via a flag.
+                rbi = scoredRunners.length;
+                break;
+            case 'ERR':
+                ps.ab++;
+                // Reached on error — no hit credit. Batter placement handled below.
                 rbi = scoredRunners.length;
                 break;
             case 'FC':
@@ -168,13 +196,16 @@ const Game = {
                 break;
         }
 
-        // For DP: if the batter wasn't marked out via runnerResults, place them on 1st
-        if (outcome === 'DP') {
-            const batterOut = runnerResults && runnerResults.some(
-                r => r.playerId === batter.id && r.toBase === 'out'
-            );
-            if (!batterOut) {
-                this.state.bases[0] = batter.id;
+        // For DP/ERR: if the batter wasn't marked out via runnerResults, place them on 1st
+        if (outcome === 'DP' || outcome === 'ERR') {
+            if (!batterMarkedOut) {
+                if (batterPlacement) {
+                    this.state.bases[batterPlacement.toBase - 1] = batter.id;
+                } else {
+                    this.state.bases[0] = batter.id;
+                }
+            } else {
+                this.state.outs++;
             }
         }
 
@@ -296,6 +327,9 @@ const Game = {
                 case 'DP':
                     defaultTo = 'out';
                     break;
+                case 'ERR':
+                    defaultTo = i + 1; // default: stay on current base
+                    break;
                 default:
                     defaultTo = i + 1; // stay on base (for outs, user decides)
                     break;
@@ -310,7 +344,7 @@ const Game = {
     // Check if we need runner resolution
     needsRunnerResolution(outcome) {
         if (['K', 'FO'].includes(outcome)) return false;
-        if (outcome === 'FC' || outcome === 'DP') return true;
+        if (['FC', 'DP', 'ERR'].includes(outcome)) return true;
         return this.state.bases.some(b => b !== null);
     }
 };
