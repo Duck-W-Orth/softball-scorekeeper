@@ -118,8 +118,8 @@ const Game = {
                 this.state.bases[0] = batter.id;
                 rbi = scoredRunners.length;
                 break;
-            case 'HBP':
-                ps.hbp++;
+            case 'FC':
+                ps.ab++;
                 this.state.bases[0] = batter.id;
                 rbi = scoredRunners.length;
                 break;
@@ -139,6 +139,10 @@ const Game = {
             case 'GO':
             case 'FLY':
             case 'LO':
+                ps.ab++;
+                this.state.outs++;
+                break;
+            case 'DP':
                 ps.ab++;
                 this.state.outs++;
                 break;
@@ -227,12 +231,14 @@ const Game = {
                     defaultTo = 'home';
                     break;
                 case 'BB':
-                case 'HBP':
                     // Force advance only if base ahead is occupied or it's first
                     if (i === 0) defaultTo = (bases[1]) ? (bases[2] ? 'home' : 3) : 2;
                     else if (i === 1 && bases[0]) defaultTo = bases[2] ? 'home' : 3;
                     else if (i === 2 && bases[1] && bases[0]) defaultTo = 'home';
                     else defaultTo = i + 1; // stay
+                    break;
+                case 'FC':
+                    defaultTo = 'out';
                     break;
                 default:
                     defaultTo = i + 1; // stay on base (for outs, user decides)
@@ -248,6 +254,7 @@ const Game = {
     // Check if we need runner resolution
     needsRunnerResolution(outcome) {
         if (['K', 'FO'].includes(outcome)) return false;
+        if (outcome === 'FC') return true;
         return this.state.bases.some(b => b !== null);
     }
 };

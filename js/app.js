@@ -210,13 +210,14 @@ document.addEventListener('DOMContentLoaded', () => {
             { label: '3B', outcome: '3B', cls: 'hit' },
             { label: 'HR', outcome: 'HR', cls: 'hit' },
             { label: 'BB', outcome: 'BB', cls: 'walk' },
-            { label: 'HBP', outcome: 'HBP', cls: 'walk' },
+            { label: 'FC', outcome: 'FC', cls: 'out' },
             { label: 'K', outcome: 'K', cls: 'out' },
             { label: 'Foul Out', outcome: 'FO', cls: 'out' },
             { label: 'Ground Out', outcome: 'GO', cls: 'out' },
             { label: 'Fly Out', outcome: 'FLY', cls: 'out' },
             { label: 'Line Out', outcome: 'LO', cls: 'out' },
             { label: 'Sac Fly', outcome: 'SF', cls: 'out' },
+            { label: 'DP', outcome: 'DP', cls: 'out' },
         ];
 
         actions.innerHTML = buttons.map(b =>
