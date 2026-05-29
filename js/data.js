@@ -38,6 +38,14 @@ const Data = {
         this._set('games', games);
     },
 
+    deleteGame(index) {
+        const games = this.getGames();
+        if (index >= 0 && index < games.length) {
+            games.splice(index, 1);
+            this._set('games', games);
+        }
+    },
+
     clearAllGames() {
         this._set('games', []);
     },
@@ -59,7 +67,7 @@ const Data = {
             if (!game.playerStats) return;
             Object.entries(game.playerStats).forEach(([playerId, ps]) => {
                 if (!stats[playerId]) {
-                    stats[playerId] = { name: ps.name, number: ps.number, games: 0, pa: 0, ab: 0, h: 0, singles: 0, doubles: 0, triples: 0, hr: 0, bb: 0, hbp: 0, sf: 0, rbi: 0, r: 0, k: 0, foulOut: 0 };
+                    stats[playerId] = { name: ps.name, number: ps.number, games: 0, pa: 0, ab: 0, h: 0, singles: 0, doubles: 0, triples: 0, hr: 0, bb: 0, sf: 0, rbi: 0, r: 0, k: 0, foulOut: 0 };
                 }
                 const s = stats[playerId];
                 s.games++;
@@ -71,7 +79,6 @@ const Data = {
                 s.triples += ps.triples || 0;
                 s.hr += ps.hr || 0;
                 s.bb += ps.bb || 0;
-                s.hbp += ps.hbp || 0;
                 s.sf += ps.sf || 0;
                 s.rbi += ps.rbi || 0;
                 s.r += ps.r || 0;

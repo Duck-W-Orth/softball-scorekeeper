@@ -3,8 +3,8 @@
 const Stats = {
     avg(s) { return s.ab > 0 ? (s.h / s.ab) : 0; },
     obp(s) {
-        const denom = s.ab + s.bb + s.hbp + s.sf;
-        return denom > 0 ? ((s.h + s.bb + s.hbp) / denom) : 0;
+        const denom = s.ab + s.bb + (s.sf || 0);
+        return denom > 0 ? ((s.h + s.bb) / denom) : 0;
     },
     slg(s) {
         if (s.ab === 0) return 0;

@@ -25,7 +25,7 @@ const Game = {
             this.state.playerStats[p.id] = {
                 name: p.name, number: p.number,
                 pa: 0, ab: 0, h: 0, singles: 0, doubles: 0, triples: 0, hr: 0,
-                bb: 0, hbp: 0, sf: 0, rbi: 0, r: 0, k: 0, foulOut: 0
+                bb: 0, sf: 0, rbi: 0, r: 0, k: 0, foulOut: 0
             };
         });
 
@@ -57,7 +57,7 @@ const Game = {
     },
 
     // Record an at-bat result
-    // outcome: '1B','2B','3B','HR','BB','HBP','K','FO','GO','FLY','LO','SF'
+    // outcome: '1B','2B','3B','HR','BB','K','FO','GO','FLY','LO','SF','FC','DP'
     // runnerResults: [{fromBase, toBase}] where toBase can be 'home' or 'out' or 1/2/3
     recordAtBat(outcome, runnerResults) {
         this.pushUndo();
@@ -74,6 +74,13 @@ const Game = {
             // Process from 3rd to 1st to avoid conflicts
             const sorted = [...runnerResults].sort((a, b) => b.fromBase - a.fromBase);
             sorted.forEach(r => {
+                if (r.fromBase === 0) {
+                    // This is the batter (used in DP)
+                    if (r.toBase === 'out') {
+                        this.state.outs++;
+                    }
+                    return;
+                }
                 this.state.bases[r.fromBase - 1] = null;
                 if (r.toBase === 'home') {
                     scoredRunners.push(r.playerId);
@@ -118,6 +125,14 @@ const Game = {
                 this.state.bases[0] = batter.id;
                 rbi = scoredRunners.length;
                 break;
+            case 'DP':
+                ps.ab++;
+                // DP does NOT automatically count the batter as out.
+                // The runner modal handles who is out (could be two runners, or runner + batter).
+                // Batter placement depends on runner results — if batter is not out, they reach first.
+                // We'll handle batter placement after this switch via a flag.
+                rbi = scoredRunners.length;
+                break;
             case 'FC':
                 ps.ab++;
                 this.state.bases[0] = batter.id;
@@ -142,10 +157,16 @@ const Game = {
                 ps.ab++;
                 this.state.outs++;
                 break;
-            case 'DP':
-                ps.ab++;
-                this.state.outs++;
-                break;
+        }
+
+        // For DP: if the batter wasn't marked out via runnerResults, place them on 1st
+        if (outcome === 'DP') {
+            const batterOut = runnerResults && runnerResults.some(
+                r => r.playerId === batter.id && r.toBase === 'out'
+            );
+            if (!batterOut) {
+                this.state.bases[0] = batter.id;
+            }
         }
 
         ps.rbi += rbi;
@@ -182,14 +203,10 @@ const Game = {
         this.pushUndo();
         this.state.oppScore += this.state.oppInningStats.runs;
 
-        // Check if game is over (7 innings completed)
-        if (this.state.inning >= 7) {
-            this.state.gameOver = true;
-        } else {
-            this.state.inning++;
-            this.state.half = 'top';
-            this.state.outs = 0;
-        }
+        // Always advance to next inning (extra innings allowed)
+        this.state.inning++;
+        this.state.half = 'top';
+        this.state.outs = 0;
         this.save();
     },
 
@@ -231,13 +248,33 @@ const Game = {
                     defaultTo = 'home';
                     break;
                 case 'BB':
-                    // Force advance only if base ahead is occupied or it's first
-                    if (i === 0) defaultTo = (bases[1]) ? (bases[2] ? 'home' : 3) : 2;
-                    else if (i === 1 && bases[0]) defaultTo = bases[2] ? 'home' : 3;
-                    else if (i === 2 && bases[1] && bases[0]) defaultTo = 'home';
-                    else defaultTo = i + 1; // stay
+                    // Only force runners who are directly pushed by the batter going to 1st.
+                    // Runner on 1st is forced to 2nd; runner on 2nd is forced to 3rd ONLY if 1st is also occupied;
+                    // runner on 3rd is forced home ONLY if 1st AND 2nd are occupied.
+                    // Runners NOT in a force chain do NOT advance.
+                    if (i === 0) {
+                        // Runner on 1st: always forced
+                        defaultTo = 2;
+                        if (bases[1]) {
+                            // 2nd occupied too, push to 3rd
+                            defaultTo = 2; // this runner still goes to 2nd
+                        }
+                    } else if (i === 1 && bases[0]) {
+                        // Runner on 2nd, forced only if 1st is occupied
+                        defaultTo = 3;
+                        if (bases[2] && bases[0]) {
+                            defaultTo = 3; // still goes to 3rd
+                        }
+                    } else if (i === 2 && bases[1] && bases[0]) {
+                        // Runner on 3rd, forced only if 1st AND 2nd are occupied (bases loaded)
+                        defaultTo = 'home';
+                    } else {
+                        // Not forced — stays put
+                        defaultTo = i + 1; // i+1 == current base (1-indexed)
+                    }
                     break;
                 case 'FC':
+                case 'DP':
                     defaultTo = 'out';
                     break;
                 default:
@@ -254,7 +291,7 @@ const Game = {
     // Check if we need runner resolution
     needsRunnerResolution(outcome) {
         if (['K', 'FO'].includes(outcome)) return false;
-        if (outcome === 'FC') return true;
+        if (outcome === 'FC' || outcome === 'DP') return true;
         return this.state.bases.some(b => b !== null);
     }
 };

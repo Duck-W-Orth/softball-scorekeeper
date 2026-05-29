@@ -268,3 +268,43 @@ h3 { margin: 12px 0 8px; font-size: 16px; }
 
 .stats-actions { margin-top: 24px; display: flex; gap: 10px; }
 .stats-actions button { flex: 1; padding: 12px; font-size: 13px; }
+
+/* Game History */
+#game-history-list { margin-bottom: 16px; }
+
+.game-history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    margin-bottom: 8px;
+}
+
+.game-history-info { font-size: 14px; }
+
+.game-result {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    line-height: 22px;
+    text-align: center;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 12px;
+    margin-right: 8px;
+}
+
+.game-result.W { background: var(--primary); color: #fff; }
+.game-result.L { background: var(--danger); color: #fff; }
+.game-result.T { background: var(--accent); color: #000; }
+
+.game-history-item .btn-remove {
+    background: none;
+    border: none;
+    color: var(--danger);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 8px;
+}

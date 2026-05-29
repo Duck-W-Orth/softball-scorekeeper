@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('view-' + name).classList.add('active');
         document.querySelector(`[data-view="${name}"]`).classList.add('active');
 
-        if (name === 'stats') Stats.renderStatsTable('stats-table-container');
+        if (name === 'stats') { Stats.renderStatsTable('stats-table-container'); renderGameHistory(); }
         if (name === 'home') renderHome();
         if (name === 'roster') renderRoster();
         if (name === 'game') renderGameView();
@@ -246,7 +246,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const decisions = document.getElementById('runner-decisions');
         const defaults = Game.getDefaultRunnerAdvance(outcome);
 
-        if (defaults.length === 0) {
+        // For DP, also include the batter as a decision (they could be out too)
+        let dpBatterEntry = null;
+        if (outcome === 'DP') {
+            const batter = Game.currentBatter();
+            dpBatterEntry = { playerId: batter.id, isBatter: true, name: batter.name, number: batter.number };
+        }
+
+        if (defaults.length === 0 && !dpBatterEntry) {
             Game.recordAtBat(outcome, []);
             renderLiveGame();
             return;
@@ -254,13 +261,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const roster = Game.state.lineup;
 
-        decisions.innerHTML = defaults.map(d => {
+        let html = '';
+
+        // Render runner decisions
+        defaults.forEach(d => {
             const player = roster.find(p => p.id === d.playerId) || { name: 'Runner' };
             const baseLabel = d.fromBase === 1 ? '1st' : d.fromBase === 2 ? '2nd' : '3rd';
 
             let options = '';
-            // Options depend on outcome type
-            if (['GO', 'FLY', 'LO', 'SF'].includes(outcome)) {
+            if (['GO', 'FLY', 'LO', 'SF', 'DP'].includes(outcome)) {
                 options = `
                     <option value="${d.fromBase}" ${d.fromBase === d.defaultTo ? 'selected' : ''}>Stays at ${baseLabel}</option>
                     ${d.fromBase < 3 ? `<option value="${d.fromBase + 1}">Advances to ${d.fromBase + 1 === 2 ? '2nd' : '3rd'}</option>` : ''}
@@ -273,8 +282,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${d.fromBase < 3 ? `<option value="${d.fromBase + 1}" ${d.defaultTo === d.fromBase + 1 ? 'selected' : ''}>Advances to ${d.fromBase + 1 === 2 ? '2nd' : '3rd'}</option>` : ''}
                     <option value="home" ${d.defaultTo === 'home' ? 'selected' : ''}>Scores</option>
                 `;
-                // For walks/HBP, force advance is default
-                if (['BB', 'HBP'].includes(outcome)) {
+                // For walks, force advance is default
+                if (outcome === 'BB') {
                     options = `
                         <option value="${d.fromBase}">Stays at ${baseLabel}</option>
                         <option value="${d.fromBase + 1 <= 3 ? d.fromBase + 1 : 'home'}" ${d.defaultTo === d.fromBase + 1 || (d.fromBase === 3 && d.defaultTo === 'home') ? 'selected' : ''}>Advances to ${d.fromBase + 1 <= 3 ? (d.fromBase + 1 === 2 ? '2nd' : '3rd') : 'Home'}</option>
@@ -283,7 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            return `
+            html += `
                 <div class="runner-decision">
                     <label>${player.name} (on ${baseLabel})</label>
                     <select data-from="${d.fromBase}" data-player="${d.playerId}">
@@ -291,14 +300,37 @@ document.addEventListener('DOMContentLoaded', () => {
                     </select>
                 </div>
             `;
-        }).join('');
+        });
 
+        // For DP, add batter decision
+        if (dpBatterEntry) {
+            html += `
+                <div class="runner-decision">
+                    <label>${dpBatterEntry.name} (Batter)</label>
+                    <select data-from="0" data-player="${dpBatterEntry.playerId}" data-is-batter="true">
+                        <option value="safe" selected>Safe at 1st</option>
+                        <option value="out">Out</option>
+                    </select>
+                </div>
+            `;
+        }
+
+        decisions.innerHTML = html;
         modal.style.display = 'flex';
 
         document.getElementById('btn-confirm-runners').onclick = () => {
             const selects = decisions.querySelectorAll('select');
             const results = [];
             selects.forEach(sel => {
+                const isBatter = sel.dataset.isBatter === 'true';
+                if (isBatter) {
+                    // Handle batter for DP
+                    if (sel.value === 'out') {
+                        results.push({ fromBase: 0, playerId: sel.dataset.player, toBase: 'out' });
+                    }
+                    // If 'safe', the game engine places batter on 1st
+                    return;
+                }
                 const val = sel.value;
                 const toBase = val === 'home' ? 'home' : val === 'out' ? 'out' : parseInt(val);
                 const fromBase = parseInt(sel.dataset.from);
@@ -338,13 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('btn-end-opp-inning').addEventListener('click', () => {
         Game.endOppHalf();
-        if (Game.state.gameOver) {
-            Game.endGame();
-            showView('home');
-            alert('Game over! Stats saved.');
-        } else {
-            renderLiveGame();
-        }
+        renderLiveGame();
     });
 
     // Half-inning toggle (manual switch for corrections)
@@ -378,17 +404,43 @@ document.addEventListener('DOMContentLoaded', () => {
     renderHome();
 
     // Stats management
-    document.getElementById('btn-clear-last-game').addEventListener('click', () => {
-        if (confirm('Delete the last game?')) {
-            Data.deleteLastGame();
-            Stats.renderStatsTable('stats-table-container');
+    function renderGameHistory() {
+        const games = Data.getGames();
+        const container = document.getElementById('game-history-list');
+        if (games.length === 0) {
+            container.innerHTML = '<p style="color:var(--text-dim);text-align:center;">No games yet.</p>';
+            return;
         }
-    });
+        container.innerHTML = games.map((g, i) => {
+            const date = new Date(g.date).toLocaleDateString();
+            const result = g.teamScore > g.oppScore ? 'W' : g.teamScore < g.oppScore ? 'L' : 'T';
+            return `
+                <div class="game-history-item">
+                    <span class="game-history-info">
+                        <span class="game-result ${result}">${result}</span>
+                        ${g.teamScore}–${g.oppScore} (${g.innings} inn) — ${date}
+                    </span>
+                    <button class="btn-remove" data-game-idx="${i}">×</button>
+                </div>
+            `;
+        }).join('');
+
+        container.querySelectorAll('.btn-remove').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (confirm('Delete this game?')) {
+                    Data.deleteGame(parseInt(btn.dataset.gameIdx));
+                    Stats.renderStatsTable('stats-table-container');
+                    renderGameHistory();
+                }
+            });
+        });
+    }
 
     document.getElementById('btn-clear-all').addEventListener('click', () => {
         if (confirm('Erase ALL game data? This cannot be undone.')) {
             Data.clearAllGames();
             Stats.renderStatsTable('stats-table-container');
+            renderGameHistory();
         }
     });
 });
