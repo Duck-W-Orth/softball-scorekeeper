@@ -4,10 +4,12 @@ const Game = {
     state: null,
     undoStack: [],
 
-    create(lineup, isHome) {
+    create(lineup, isHome, teamName, oppName) {
         this.state = {
             lineup: lineup, // [{id, name, number}]
             isHome: !!isHome, // true = we bat in bottom half
+            teamName: teamName || 'Us',
+            oppName: oppName || 'Them',
             inning: 1,
             half: 'top', // top = first half, bottom = second half
             outs: 0,
@@ -263,6 +265,8 @@ const Game = {
         this.state.gameOver = true;
         const gameRecord = {
             date: new Date().toISOString(),
+            teamName: this.state.teamName,
+            oppName: this.state.oppName,
             teamScore: this.state.teamScore,
             oppScore: this.state.oppScore,
             innings: this.state.inning,

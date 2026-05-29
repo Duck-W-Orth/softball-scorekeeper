@@ -105,6 +105,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const order = document.getElementById('lineup-order');
         const startBtn = document.getElementById('btn-start-game');
 
+        // Pre-fill team name from last game
+        const savedTeamName = localStorage.getItem('teamName') || '';
+        document.getElementById('input-team-name').value = savedTeamName;
+
         function render() {
             available.innerHTML = roster.map(p => {
                 const inLineup = selectedLineup.find(l => l.id === p.id);
@@ -156,7 +160,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('btn-start-game').addEventListener('click', () => {
         const isHome = document.querySelector('#home-away-select .toggle-btn.active').dataset.side === 'home';
-        Game.create(selectedLineup, isHome);
+        const teamName = document.getElementById('input-team-name').value.trim() || 'Us';
+        const oppName = document.getElementById('input-opp-name').value.trim() || 'Them';
+        // Remember team name for next time
+        localStorage.setItem('teamName', teamName);
+        Game.create(selectedLineup, isHome, teamName, oppName);
         document.getElementById('lineup-setup').style.display = 'none';
         document.getElementById('live-game').style.display = 'block';
         renderLiveGame();
@@ -183,8 +191,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!s) return;
 
         // Scoreboard: if home, we're on the right (Them first); if away, we're on the left (Us first)
-        document.getElementById('team-score').textContent = `Us: ${s.teamScore}`;
-        document.getElementById('opp-score').textContent = `Them: ${s.oppScore}`;
+        document.getElementById('team-score').textContent = `${s.teamName}: ${s.teamScore}`;
+        document.getElementById('opp-score').textContent = `${s.oppName}: ${s.oppScore}`;
         document.getElementById('inning-display').textContent = `Inn: ${s.half === 'top' ? '▲' : '▼'} ${s.inning}`;
         document.getElementById('outs-display').textContent = `Outs: ${s.outs}`;
 
@@ -494,11 +502,12 @@ document.addEventListener('DOMContentLoaded', () => {
         container.innerHTML = games.map((g, i) => {
             const date = new Date(g.date).toLocaleDateString();
             const result = g.teamScore > g.oppScore ? 'W' : g.teamScore < g.oppScore ? 'L' : 'T';
+            const oppLabel = g.oppName || 'Opponent';
             return `
                 <div class="game-history-item">
                     <span class="game-history-info">
                         <span class="game-result ${result}">${result}</span>
-                        ${g.teamScore}–${g.oppScore} (${g.innings} inn) — ${date}
+                        ${g.teamScore}–${g.oppScore} vs ${oppLabel} (${g.innings} inn) — ${date}
                     </span>
                     <button class="btn-remove" data-game-idx="${i}">×</button>
                 </div>
