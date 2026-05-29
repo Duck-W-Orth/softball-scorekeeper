@@ -43,7 +43,11 @@ document.addEventListener('DOMContentLoaded', () => {
         Game.state = null;
         document.getElementById('lineup-setup').style.display = 'block';
         document.getElementById('live-game').style.display = 'none';
-        showView('game');
+        // Switch to game view without calling renderGameView (which would auto-load)
+        views.forEach(v => v.classList.remove('active'));
+        navBtns.forEach(b => b.classList.remove('active'));
+        document.getElementById('view-game').classList.add('active');
+        document.querySelector('[data-view="game"]').classList.add('active');
         renderLineupSetup();
     });
 
