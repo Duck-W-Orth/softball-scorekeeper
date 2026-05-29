@@ -167,8 +167,7 @@ const Game = {
                 break;
             case 'ERR':
                 ps.ab++;
-                // Reached on error — no hit credit. Batter placement handled below.
-                rbi = scoredRunners.length;
+                // Reached on error — no hit credit, no RBI credit
                 break;
             case 'FC':
                 ps.ab++;
