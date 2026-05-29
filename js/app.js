@@ -40,14 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('live-game').style.display = 'none';
         showView('game');
         renderLineupSetup();
-
-        // Home/Away toggle
-        document.querySelectorAll('#home-away-select .toggle-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('#home-away-select .toggle-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-            });
-        });
     });
 
     document.getElementById('btn-resume-game').addEventListener('click', () => {
@@ -143,6 +135,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         render();
+
+        // Home/Away toggle
+        document.querySelectorAll('#home-away-select .toggle-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#home-away-select .toggle-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
     }
 
     document.getElementById('btn-start-game').addEventListener('click', () => {
