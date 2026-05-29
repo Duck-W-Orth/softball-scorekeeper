@@ -334,20 +334,31 @@ document.addEventListener('DOMContentLoaded', () => {
             const player = roster.find(p => p.id === d.playerId) || { name: 'Runner' };
             const baseLabel = d.fromBase === 1 ? '1st' : d.fromBase === 2 ? '2nd' : '3rd';
 
-            // All outcomes now get the "Out" option for runners (baserunning errors, thrown out, etc.)
+            // Build advancement options: stay, each base ahead, score, out
+            let advanceOptions = '';
+            for (let b = d.fromBase + 1; b <= 3; b++) {
+                const label = b === 2 ? '2nd' : '3rd';
+                advanceOptions += `<option value="${b}" ${d.defaultTo === b ? 'selected' : ''}>Advances to ${label}</option>`;
+            }
+
             let options = `
                 <option value="${d.fromBase}" ${d.defaultTo === d.fromBase ? 'selected' : ''}>Stays at ${baseLabel}</option>
-                ${d.fromBase < 3 ? `<option value="${d.fromBase + 1}" ${d.defaultTo === d.fromBase + 1 ? 'selected' : ''}>Advances to ${d.fromBase + 1 === 2 ? '2nd' : '3rd'}</option>` : ''}
+                ${advanceOptions}
                 <option value="home" ${d.defaultTo === 'home' ? 'selected' : ''}>Scores</option>
                 <option value="out" ${d.defaultTo === 'out' ? 'selected' : ''}>Out</option>
             `;
 
             // For walks, simplify (no out option, just force logic)
             if (outcome === 'BB') {
+                advanceOptions = '';
+                for (let b = d.fromBase + 1; b <= 3; b++) {
+                    const label = b === 2 ? '2nd' : '3rd';
+                    advanceOptions += `<option value="${b}" ${d.defaultTo === b ? 'selected' : ''}>Advances to ${label}</option>`;
+                }
                 options = `
                     <option value="${d.fromBase}" ${d.defaultTo === d.fromBase ? 'selected' : ''}>Stays at ${baseLabel}</option>
-                    <option value="${d.fromBase + 1 <= 3 ? d.fromBase + 1 : 'home'}" ${d.defaultTo === d.fromBase + 1 || (d.fromBase === 3 && d.defaultTo === 'home') ? 'selected' : ''}>Advances to ${d.fromBase + 1 <= 3 ? (d.fromBase + 1 === 2 ? '2nd' : '3rd') : 'Home'}</option>
-                    <option value="home" ${d.defaultTo === 'home' && d.fromBase < 3 ? 'selected' : ''}>Scores</option>
+                    ${advanceOptions}
+                    <option value="home" ${d.defaultTo === 'home' ? 'selected' : ''}>Scores</option>
                 `;
             }
 
