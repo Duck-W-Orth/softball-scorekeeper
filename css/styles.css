@@ -312,3 +312,66 @@ h3 { margin: 12px 0 8px; font-size: 16px; }
 /* Home/Away Toggle */
 .home-away-toggle { display: flex; gap: 8px; }
 .home-away-toggle .toggle-btn { flex: 1; }
+
+/* Edit Game Modal */
+.edit-player-section {
+    margin-bottom: 16px;
+    padding: 12px;
+    background: var(--bg);
+    border-radius: var(--radius);
+}
+
+.edit-player-name {
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--accent);
+}
+
+.edit-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+}
+
+.edit-stat-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.edit-stat-cell label {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-bottom: 2px;
+}
+
+.edit-stat-input {
+    width: 100%;
+    padding: 6px 2px;
+    text-align: center;
+    border-radius: 6px;
+    border: 1px solid var(--surface2);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.edit-stat-input:focus {
+    border-color: var(--accent);
+    outline: none;
+}
+
+.game-history-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.btn-edit-game {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 8px;
+}

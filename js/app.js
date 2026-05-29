@@ -516,11 +516,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const oppLabel = g.oppName || 'Opponent';
             return `
                 <div class="game-history-item">
-                    <span class="game-history-info">
+                    <span class="game-history-info" data-game-idx="${i}" style="cursor:pointer;">
                         <span class="game-result ${result}">${result}</span>
                         ${g.teamScore}–${g.oppScore} vs ${oppLabel} (${g.innings} inn) — ${date}
                     </span>
-                    <button class="btn-remove" data-game-idx="${i}">×</button>
+                    <span class="game-history-actions">
+                        <button class="btn-edit-game" data-game-idx="${i}">✎</button>
+                        <button class="btn-remove" data-game-idx="${i}">×</button>
+                    </span>
                 </div>
             `;
         }).join('');
@@ -534,6 +537,71 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         });
+
+        container.querySelectorAll('.btn-edit-game').forEach(btn => {
+            btn.addEventListener('click', () => {
+                showEditGameModal(parseInt(btn.dataset.gameIdx));
+            });
+        });
+    }
+
+    function showEditGameModal(gameIdx) {
+        const games = Data.getGames();
+        const game = games[gameIdx];
+        if (!game || !game.playerStats) return;
+
+        const modal = document.getElementById('edit-game-modal');
+        const container = document.getElementById('edit-game-players');
+
+        const statFields = ['pa', 'ab', 'h', 'singles', 'doubles', 'triples', 'hr', 'bb', 'sf', 'rbi', 'r', 'k', 'foulOut'];
+        const statLabels = ['PA', 'AB', 'H', '1B', '2B', '3B', 'HR', 'BB', 'SF', 'RBI', 'R', 'K', 'FO'];
+
+        let html = '';
+        Object.entries(game.playerStats).forEach(([playerId, ps]) => {
+            html += `<div class="edit-player-section" data-player-id="${playerId}">`;
+            html += `<div class="edit-player-name">${ps.number ? '#' + ps.number + ' ' : ''}${ps.name}</div>`;
+            html += `<div class="edit-stat-grid">`;
+            statFields.forEach((field, idx) => {
+                html += `
+                    <div class="edit-stat-cell">
+                        <label>${statLabels[idx]}</label>
+                        <input type="number" min="0" data-field="${field}" value="${ps[field] || 0}" class="edit-stat-input">
+                    </div>
+                `;
+            });
+            html += `</div></div>`;
+        });
+
+        container.innerHTML = html;
+        modal.style.display = 'flex';
+
+        document.getElementById('btn-save-edit').onclick = () => {
+            // Read all edited values back
+            const sections = container.querySelectorAll('.edit-player-section');
+            sections.forEach(section => {
+                const playerId = section.dataset.playerId;
+                const inputs = section.querySelectorAll('.edit-stat-input');
+                inputs.forEach(input => {
+                    const field = input.dataset.field;
+                    const val = Math.max(0, parseInt(input.value) || 0);
+                    game.playerStats[playerId][field] = val;
+                });
+                // Recalculate h from singles + doubles + triples + hr
+                const ps = game.playerStats[playerId];
+                ps.h = (ps.singles || 0) + (ps.doubles || 0) + (ps.triples || 0) + (ps.hr || 0);
+            });
+
+            // Save back
+            games[gameIdx] = game;
+            Data._set('games', games);
+            modal.style.display = 'none';
+            Stats.renderStatsTable('stats-table-container');
+            renderGameHistory();
+        };
+
+        document.getElementById('btn-cancel-edit').onclick = () => {
+            modal.style.display = 'none';
+        };
     }
 
     document.getElementById('btn-clear-all').addEventListener('click', () => {
