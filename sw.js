@@ -1,4 +1,4 @@
-const CACHE_NAME = 'softball-v2';
+const CACHE_NAME = 'softball-v3';
 const ASSETS = [
     './',
     './index.html',

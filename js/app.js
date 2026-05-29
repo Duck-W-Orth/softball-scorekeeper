@@ -40,6 +40,14 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('live-game').style.display = 'none';
         showView('game');
         renderLineupSetup();
+
+        // Home/Away toggle
+        document.querySelectorAll('#home-away-select .toggle-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#home-away-select .toggle-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
     });
 
     document.getElementById('btn-resume-game').addEventListener('click', () => {
@@ -138,7 +146,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.getElementById('btn-start-game').addEventListener('click', () => {
-        Game.create(selectedLineup);
+        const isHome = document.querySelector('#home-away-select .toggle-btn.active').dataset.side === 'home';
+        Game.create(selectedLineup, isHome);
         document.getElementById('lineup-setup').style.display = 'none';
         document.getElementById('live-game').style.display = 'block';
         renderLiveGame();
@@ -164,6 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const s = Game.state;
         if (!s) return;
 
+        // Scoreboard: if home, we're on the right (Them first); if away, we're on the left (Us first)
         document.getElementById('team-score').textContent = `Us: ${s.teamScore}`;
         document.getElementById('opp-score').textContent = `Them: ${s.oppScore}`;
         document.getElementById('inning-display').textContent = `Inn: ${s.half === 'top' ? '▲' : '▼'} ${s.inning}`;
@@ -174,15 +184,36 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('base-2').classList.toggle('occupied', !!s.bases[1]);
         document.getElementById('base-3').classList.toggle('occupied', !!s.bases[2]);
 
-        // Half toggle
-        const toggleBtns = document.querySelectorAll('.toggle-btn');
+        // Half toggle labels
+        const toggleBtns = document.querySelectorAll('#half-inning-toggle .toggle-btn');
+        const ourBat = Game.isOurBat();
+        toggleBtns[0].textContent = s.half === 'top' ? (ourBat ? '🏏 Batting' : '🧤 Field') : (ourBat ? '🏏 Batting' : '🧤 Field');
+        toggleBtns[1].textContent = s.half === 'top' ? (!ourBat ? '🏏 Batting' : '🧤 Field') : (!ourBat ? '🏏 Batting' : '🧤 Field');
+        // Actually just show which half is active
         toggleBtns.forEach(b => b.classList.remove('active'));
-        document.querySelector(`[data-half="${s.half === 'top' ? 'top' : 'bottom'}"]`).classList.add('active');
+        if (s.half === 'top') {
+            toggleBtns[0].classList.add('active');
+        } else {
+            toggleBtns[1].classList.add('active');
+        }
+
+        // Update toggle button labels based on home/away
+        if (s.isHome) {
+            toggleBtns[0].textContent = '🧤 Field'; // top = opponent bats
+            toggleBtns[0].dataset.half = 'top';
+            toggleBtns[1].textContent = '🏏 Batting'; // bottom = we bat
+            toggleBtns[1].dataset.half = 'bottom';
+        } else {
+            toggleBtns[0].textContent = '🏏 Batting'; // top = we bat
+            toggleBtns[0].dataset.half = 'top';
+            toggleBtns[1].textContent = '🧤 Field'; // bottom = opponent bats
+            toggleBtns[1].dataset.half = 'bottom';
+        }
 
         const battingPanel = document.getElementById('batting-panel');
         const fieldingPanel = document.getElementById('fielding-panel');
 
-        if (s.half === 'top') {
+        if (ourBat) {
             battingPanel.style.display = 'block';
             fieldingPanel.style.display = 'none';
             renderBattingPanel();
@@ -374,13 +405,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Half-inning toggle (manual switch for corrections)
-    document.querySelectorAll('.toggle-btn').forEach(btn => {
+    document.querySelectorAll('#half-inning-toggle .toggle-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            if (btn.dataset.half === 'top') {
-                Game.state.half = 'top';
-            } else {
-                Game.state.half = 'bottom';
-            }
+            Game.state.half = btn.dataset.half;
             Game.save();
             renderLiveGame();
         });

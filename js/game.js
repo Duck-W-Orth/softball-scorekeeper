@@ -4,11 +4,12 @@ const Game = {
     state: null,
     undoStack: [],
 
-    create(lineup) {
+    create(lineup, isHome) {
         this.state = {
             lineup: lineup, // [{id, name, number}]
+            isHome: !!isHome, // true = we bat in bottom half
             inning: 1,
-            half: 'top', // top = us batting, bottom = them
+            half: 'top', // top = first half, bottom = second half
             outs: 0,
             batterIndex: 0,
             bases: [null, null, null], // [1st, 2nd, 3rd] — holds player id or null
@@ -42,6 +43,14 @@ const Game = {
 
     currentBatter() {
         return this.state.lineup[this.state.batterIndex % this.state.lineup.length];
+    },
+
+    // Are we batting in the current half-inning?
+    isOurBat() {
+        if (this.state.isHome) {
+            return this.state.half === 'bottom'; // Home team bats in bottom
+        }
+        return this.state.half === 'top'; // Away team bats in top
     },
 
     pushUndo() {
@@ -194,7 +203,13 @@ const Game = {
     endTeamHalf() {
         this.state.outs = 0;
         this.state.bases = [null, null, null];
-        this.state.half = 'bottom';
+        // Switch to the other half
+        const nextHalf = (this.state.half === 'top') ? 'bottom' : 'top';
+        // If completing the bottom half, advance inning
+        if (this.state.half === 'bottom') {
+            this.state.inning++;
+        }
+        this.state.half = nextHalf;
         this.state.oppInningStats = { runs: 0, walks: 0, ks: 0 };
         this.save();
     },
@@ -203,9 +218,13 @@ const Game = {
         this.pushUndo();
         this.state.oppScore += this.state.oppInningStats.runs;
 
-        // Always advance to next inning (extra innings allowed)
-        this.state.inning++;
-        this.state.half = 'top';
+        // Switch to the other half
+        const nextHalf = (this.state.half === 'top') ? 'bottom' : 'top';
+        // If we're completing the bottom half, the full inning is done — advance inning number
+        if (this.state.half === 'bottom') {
+            this.state.inning++;
+        }
+        this.state.half = nextHalf;
         this.state.outs = 0;
         this.save();
     },
