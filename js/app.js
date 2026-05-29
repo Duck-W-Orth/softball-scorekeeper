@@ -272,9 +272,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleAtBat(outcome) {
         if (Game.state.gameOver) return;
 
-        // If this play makes the 3rd out, skip runner resolution — inning is over
-        const outsFromPlay = ['K', 'FO', 'GO', 'FLY', 'LO', 'SF'].includes(outcome) ? 1 : 0;
-        if (Game.state.outs + outsFromPlay >= 3) {
+        // These outcomes always record an out for the batter
+        const batterIsOut = ['K', 'FO', 'GO', 'FLY', 'LO', 'SF'].includes(outcome);
+
+        // If this would be the 3rd out, skip runner resolution — inning is over, no runs score
+        if (batterIsOut && Game.state.outs >= 2) {
             Game.recordAtBat(outcome, null);
             renderLiveGame();
             return;
