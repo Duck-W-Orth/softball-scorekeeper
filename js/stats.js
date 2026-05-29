@@ -55,6 +55,44 @@ const Stats = {
             html += '</tr>';
         });
 
+        // Team totals row
+        const totals = { pa: 0, ab: 0, h: 0, singles: 0, doubles: 0, triples: 0, hr: 0, rbi: 0, r: 0, bb: 0, k: 0, foulOut: 0, sf: 0 };
+        players.forEach(s => {
+            totals.pa += s.pa;
+            totals.ab += s.ab;
+            totals.h += s.h;
+            totals.singles += s.singles;
+            totals.doubles += s.doubles;
+            totals.triples += s.triples;
+            totals.hr += s.hr;
+            totals.rbi += s.rbi;
+            totals.r += s.r;
+            totals.bb += s.bb;
+            totals.k += s.k;
+            totals.foulOut += s.foulOut;
+            totals.sf += s.sf || 0;
+        });
+
+        html += '<tr class="totals-row">';
+        html += '<td><strong>TEAM</strong></td>';
+        html += `<td></td>`;
+        html += `<td>${totals.pa}</td>`;
+        html += `<td>${totals.ab}</td>`;
+        html += `<td>${totals.h}</td>`;
+        html += `<td>${totals.doubles}</td>`;
+        html += `<td>${totals.triples}</td>`;
+        html += `<td>${totals.hr}</td>`;
+        html += `<td>${totals.rbi}</td>`;
+        html += `<td>${totals.r}</td>`;
+        html += `<td>${totals.bb}</td>`;
+        html += `<td>${totals.k}</td>`;
+        html += `<td>${totals.foulOut}</td>`;
+        html += `<td>${this.format(this.avg(totals))}</td>`;
+        html += `<td>${this.format(this.obp(totals))}</td>`;
+        html += `<td>${this.format(this.slg(totals))}</td>`;
+        html += `<td>${this.format(this.ops(totals))}</td>`;
+        html += '</tr>';
+
         html += '</tbody></table>';
         container.innerHTML = html;
     }

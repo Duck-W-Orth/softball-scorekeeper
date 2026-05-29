@@ -375,3 +375,10 @@ h3 { margin: 12px 0 8px; font-size: 16px; }
     cursor: pointer;
     padding: 4px 8px;
 }
+
+/* Totals Row */
+.stats-table .totals-row td {
+    border-top: 2px solid var(--accent);
+    font-weight: 700;
+    color: var(--accent);
+}
