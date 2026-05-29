@@ -272,6 +272,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleAtBat(outcome) {
         if (Game.state.gameOver) return;
 
+        // If this play makes the 3rd out, skip runner resolution — inning is over
+        const outsFromPlay = ['K', 'FO', 'GO', 'FLY', 'LO', 'SF'].includes(outcome) ? 1 : 0;
+        if (Game.state.outs + outsFromPlay >= 3) {
+            Game.recordAtBat(outcome, null);
+            renderLiveGame();
+            return;
+        }
+
         // If runners on base and it's a play that could advance them
         if (Game.needsRunnerResolution(outcome)) {
             showRunnerModal(outcome);
