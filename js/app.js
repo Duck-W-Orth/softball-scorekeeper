@@ -36,6 +36,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.getElementById('btn-new-game').addEventListener('click', () => {
+        const current = Data.getCurrentGame();
+        if (current && !confirm('Abandon current game in progress?')) return;
+        // Clear any in-progress game so we get a fresh lineup setup
+        Data.clearCurrentGame();
+        Game.state = null;
         document.getElementById('lineup-setup').style.display = 'block';
         document.getElementById('live-game').style.display = 'none';
         showView('game');
