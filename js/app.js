@@ -300,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const baseLabel = d.fromBase === 1 ? '1st' : d.fromBase === 2 ? '2nd' : '3rd';
 
             let options = '';
-            if (['GO', 'FLY', 'LO', 'SF', 'DP'].includes(outcome)) {
+            if (['GO', 'FLY', 'LO', 'SF', 'FC', 'DP'].includes(outcome)) {
                 options = `
                     <option value="${d.fromBase}" ${d.fromBase === d.defaultTo ? 'selected' : ''}>Stays at ${baseLabel}</option>
                     ${d.fromBase < 3 ? `<option value="${d.fromBase + 1}">Advances to ${d.fromBase + 1 === 2 ? '2nd' : '3rd'}</option>` : ''}
